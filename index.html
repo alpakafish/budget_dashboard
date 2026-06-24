@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Бюджет 2025–2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #f5f5f3; color: #1a1a18; font-size: 14px; line-height: 1.6; }
+  h1 { font-size: 22px; font-weight: 600; color: #1a1a18; }
+  .header { background: #fff; border-bottom: 1px solid #e5e5e2; padding: 20px 32px; }
+  .header p { font-size: 13px; color: #888; margin-top: 4px; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px 24px; }
+  .section-label { font-size: 11px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 12px; }
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+  .metric { background: #fff; border: 1px solid #e5e5e2; border-radius: 10px; padding: 16px 18px; }
+  .metric .label { font-size: 12px; color: #999; margin-bottom: 5px; }
+  .metric .value { font-size: 22px; font-weight: 600; color: #1a1a18; }
+  .metric .sub { font-size: 11px; color: #bbb; margin-top: 3px; }
+  .card { background: #fff; border: 1px solid #e5e5e2; border-radius: 12px; padding: 20px 22px; margin-bottom: 20px; }
+  .chart-wrap { position: relative; width: 100%; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #555; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+  .tab { font-size: 12px; padding: 5px 11px; border: 1px solid #d5d5d2; border-radius: 6px; cursor: pointer; color: #666; background: transparent; font-family: inherit; transition: all 0.15s; }
+  .tab:hover { background: #f5f5f3; }
+  .tab.active { background: #1a1a18; color: #fff; border-color: #1a1a18; font-weight: 500; }
+  .period-detail { display: none; }
+  .period-detail.active { display: block; }
+  .period-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid #efefed; }
+  .period-header .total-label { font-size: 13px; color: #999; }
+  .period-header .total-val { font-size: 24px; font-weight: 600; }
+  .cat-list { display: flex; flex-direction: column; gap: 1px; }
+  .cat-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid #f0f0ee; }
+  .cat-row:last-child { border-bottom: none; }
+  .cat-rank { font-size: 11px; color: #ccc; width: 16px; flex-shrink: 0; }
+  .cat-name { font-size: 13px; color: #444; width: 160px; flex-shrink: 0; }
+  .cat-bar-wrap { flex: 1; height: 6px; background: #f0f0ee; border-radius: 3px; overflow: hidden; }
+  .cat-bar { height: 6px; border-radius: 3px; transition: width 0.3s; }
+  .cat-pct { font-size: 11px; color: #bbb; width: 36px; text-align: right; }
+  .cat-val { font-size: 13px; font-weight: 500; color: #1a1a18; width: 100px; text-align: right; }
+  .insight { margin-top: 16px; padding: 12px 14px; background: #fafaf8; border-left: 3px solid #d5d5d2; border-radius: 0 8px 8px 0; font-size: 13px; color: #555; line-height: 1.65; }
+  .insight b { color: #1a1a18; font-weight: 600; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .annual-cat-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0f0ee; }
+  .annual-cat-row:last-child { border-bottom: none; }
+  .annual-cat-name { font-size: 13px; color: #444; width: 180px; flex-shrink: 0; }
+  .annual-bar-wrap { flex: 1; height: 8px; background: #f0f0ee; border-radius: 4px; overflow: hidden; }
+  .annual-bar { height: 8px; border-radius: 4px; }
+  .annual-val { font-size: 13px; font-weight: 500; color: #1a1a18; width: 110px; text-align: right; }
+  .annual-pct { font-size: 11px; color: #bbb; width: 38px; text-align: right; }
+  @media (max-width: 700px) {
+    .metrics { grid-template-columns: 1fr 1fr; }
+    .two-col { grid-template-columns: 1fr; }
+    .header { padding: 16px; }
+    .container { padding: 16px; }
+    .cat-name { width: 110px; }
+    .annual-cat-name { width: 120px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Бюджет 2025–2026</h1>
+  <p>Траты по категориям · Август 2025 — Июнь 2026 · 11 периодов</p>
+</div>
+
+<div class="container">
+
+  <div class="section-label">Сводка за весь период</div>
+  <div class="metrics" id="summary-metrics"></div>
+
+  <div class="card">
+    <div class="section-label">Траты по периодам (с разбивкой по категориям)</div>
+    <div class="legend" id="legend-overview"></div>
+    <div class="chart-wrap" style="height: 260px;">
+      <canvas id="overviewChart" role="img" aria-label="Столбчатая диаграмма трат по периодам"></canvas>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="section-label">Все категории за год</div>
+      <div id="annual-cats"></div>
+    </div>
+    <div class="card">
+      <div class="section-label">Структура без сбережений</div>
+      <div class="chart-wrap" style="height: 300px;">
+        <canvas id="pieChart" role="img" aria-label="Круговая диаграмма структуры трат без сбережений"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">Детализация по периоду</div>
+    <div class="tabs" id="period-tabs"></div>
+    <div id="period-details"></div>
+  </div>
+
+</div>
+
+<script>
+const DATA = {
+  "Авг–Сен 2025": { total: 544397, cats: { "Сбережения": 298861, "Еда": 50919, "Алкоголь": 47231, "Счета": 40750, "Покупки маркетплейсы": 38129, "Одежда": 21360, "Другое": 15180, "Растения": 14432, "Собаки": 14157, "Аптека": 2687, "Бытовая химия": 690 } },
+  "Сен–Окт 2025": { total: 473469, cats: { "Сбережения": 234100, "Покупки маркетплейсы": 88100, "Еда": 39982, "Другое": 34447, "Алкоголь": 26789, "Счета": 23885, "Бытовая химия": 11163, "Растения": 8761, "Одежда": 5277, "Собаки": 965 } },
+  "Окт–Ноя 2025": { total: 485126, cats: { "Сбережения": 196198, "Другое": 66669, "Покупки маркетплейсы": 60017, "Еда": 46010, "Алкоголь": 30068, "Счета": 25532, "Растения": 25379, "Подарки": 8501, "Собаки": 7990, "Бытовая химия": 6304, "Одежда": 5556, "Уход": 5351, "Аптека": 1551 } },
+  "Ноя–Дек 2025": { total: 347352, cats: { "Сбережения": 222119, "Еда": 39394, "Счета": 21670, "Алкоголь": 21443, "Другое": 15462, "Бытовая химия": 7769, "Растения": 6435, "Подарки": 6111, "Собаки": 4010, "Покупки маркетплейсы": 1827, "Одежда": 1111 } },
+  "Декабрь 2025": { total: 728072, cats: { "Сбережения": 369554, "Другое": 129563, "Еда": 66449, "Алкоголь": 44126, "Подарки": 34339, "Счета": 26736, "Здоровье": 18000, "Уход": 15644, "Покупки маркетплейсы": 6774, "Растения": 4884, "Игры": 4674, "Одежда": 4173, "Бытовая химия": 1618, "Аптека": 1538 } },
+  "Январь 2026": { total: 317497, cats: { "Отпуск": 173651, "Еда": 32201, "Одежда": 24462, "Алкоголь": 12905, "Подарки": 10300, "Для растений": 7558, "Сбережения": 26858, "Счета": 6671, "Для дома": 6335, "Собаки": 6168, "Другое": 1186, "Бытовая химия": 205, "Игры": 412, "Растения": 234, "Подписка": 158 } },
+  "Февраль 2026": { total: 1056168, cats: { "Сбережения": 461540, "Отпуск": 220200, "Счета": 46002, "Еда": 40095, "Алкоголь": 33794, "Растения": 29250, "Для растений": 15246, "Собаки": 7981, "Для дома": 4452, "Транспорт": 3654, "Другое": 4927, "Подарки": 3000, "Покупки маркетплейсы": 2926, "Бытовая химия": 2809, "Аптека": 474, "Игры": 250 } },
+  "Март 2026": { total: 182362, cats: { "Собаки": 38107, "Еда": 34683, "Счета": 21477, "Алкоголь": 10590, "аквариум": 12461, "Другое": 10471, "Растения": 10286, "Покупки маркетплейсы": 7861, "Для растений": 5848, "Игры": 6313, "Отпуск": 8399, "Для дома": 4670, "Бытовая химия": 3520, "Подарки": 296, "Сбережения": 6300, "Транспорт": 485, "Подписка": 79, "Одежда": 516 } },
+  "Апрель 2026": { total: 1060331, cats: { "Сбережения": 750083, "Игры": 58346, "Еда": 56208, "Алкоголь": 47991, "Счета": 31330, "Растения": 32200, "Другое": 14597, "Собаки": 9838, "Одежда": 8252, "Для растений": 7957, "Аптека": 2299, "Отпуск": 4993, "Транспорт": 863, "Подписка": 829, "аквариум": 901, "Для дома": 227 } },
+  "Май 2026": { total: 580930, cats: { "Сбережения": 301666, "Отпуск": 100296, "Еда": 67639, "Счета": 52432, "Здоровье": 30847, "Для дома": 33572, "Алкоголь": 22668, "Другое": 15371, "Одежда": 12175, "Покупки маркетплейсы": 4985, "Собаки": 6408, "Для растений": 6619, "Уход": 4220, "Подарки": 5636, "аквариум": 4214, "Игры": 976, "Подписка": 228 } },
+  "Июнь 2026": { total: 233089, cats: { "Сбережения": 100000, "Еда": 43867, "Алкоголь": 22996, "Другое": 19900, "Счета": 12491, "Покупки маркетплейсы": 10181, "Уход": 7151, "Бытовая химия": 6769, "Для дома": 1706, "Для растений": 1390, "Подписка": 3569, "Одежда": 1407, "Собаки": 896, "Игры": 466 } }
+};
+
+const PERIOD_ORDER = ["Авг–Сен 2025","Сен–Окт 2025","Окт–Ноя 2025","Ноя–Дек 2025","Декабрь 2025","Январь 2026","Февраль 2026","Март 2026","Апрель 2026","Май 2026","Июнь 2026"];
+
+const CAT_COLORS = {
+  "Сбережения":            "#1D9E75",
+  "Еда":                   "#7F77DD",
+  "Алкоголь":              "#D85A30",
+  "Счета":                 "#378ADD",
+  "Другое":                "#888780",
+  "Отпуск":                "#0F6E56",
+  "Покупки маркетплейсы":  "#EF9F27",
+  "Растения":              "#639922",
+  "Собаки":                "#BA7517",
+  "Подарки":               "#534AB7",
+  "Игры":                  "#185FA5",
+  "Одежда":                "#D4537E",
+  "Бытовая химия":         "#5DCAA5",
+  "Для дома":              "#5F5E5A",
+  "Здоровье":              "#E24B4A",
+  "Уход":                  "#993556",
+  "Аптека":                "#A32D2D",
+  "Для растений":          "#3B6D11",
+  "аквариум":              "#085041",
+  "Транспорт":             "#444441",
+  "Подписка":              "#3C3489"
+};
+
+function fmt(n) {
+  return Math.round(n).toLocaleString('ru-RU') + ' ₽';
+}
+function fmtK(n) {
+  const v = Math.round(n);
+  if (v >= 1000000) return (v / 1000000).toFixed(1) + ' млн';
+  if (v >= 1000) return Math.round(v / 1000) + ' тыс';
+  return v.toString();
+}
+
+// Aggregate all categories
+const catAllTotals = {};
+PERIOD_ORDER.forEach(p => {
+  Object.entries(DATA[p].cats).forEach(([cat, val]) => {
+    catAllTotals[cat] = (catAllTotals[cat] || 0) + val;
+  });
+});
+const catsSorted = Object.entries(catAllTotals).sort((a,b) => b[1]-a[1]).filter(([,v]) => v > 0);
+const totalAll = PERIOD_ORDER.reduce((s, p) => s + DATA[p].total, 0);
+const maxPeriod = PERIOD_ORDER.reduce((a, b) => DATA[a].total > DATA[b].total ? a : b);
+const minPeriod = PERIOD_ORDER.reduce((a, b) => DATA[a].total < DATA[b].total ? a : b);
+const avgPeriod = Math.round(totalAll / PERIOD_ORDER.length);
+const topCat = catsSorted[0];
+const topSpend = catsSorted.find(([c]) => c !== 'Сбережения');
+
+// Summary metrics
+const metricsEl = document.getElementById('summary-metrics');
+[
+  { label: 'Итого трат за период', value: fmt(totalAll), sub: '11 периодов' },
+  { label: 'Самый затратный', value: fmtK(DATA[maxPeriod].total), sub: maxPeriod },
+  { label: 'Самый экономный', value: fmtK(DATA[minPeriod].total), sub: minPeriod },
+  { label: 'Топ расход (без сбереж.)', value: fmtK(topSpend[1]), sub: topSpend[0] },
+].forEach(m => {
+  metricsEl.innerHTML += `<div class="metric"><div class="label">${m.label}</div><div class="value">${m.value}</div><div class="sub">${m.sub}</div></div>`;
+});
+
+// Overview stacked bar chart
+const MAIN_CATS = ["Сбережения","Еда","Алкоголь","Счета","Отпуск","Другое","Покупки маркетплейсы","Растения","Собаки","Подарки","Игры","Одежда"];
+const legendEl = document.getElementById('legend-overview');
+MAIN_CATS.forEach(cat => {
+  legendEl.innerHTML += `<div class="legend-item"><span class="legend-dot" style="background:${CAT_COLORS[cat]}"></span>${cat}</div>`;
+});
+
+new Chart(document.getElementById('overviewChart'), {
+  type: 'bar',
+  data: {
+    labels: PERIOD_ORDER,
+    datasets: MAIN_CATS.map(cat => ({
+      label: cat,
+      data: PERIOD_ORDER.map(p => DATA[p].cats[cat] || 0),
+      backgroundColor: CAT_COLORS[cat],
+      borderWidth: 0
+    }))
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.raw)}` } } },
+    scales: {
+      x: { stacked: true, ticks: { font: { size: 11 }, color: '#999', autoSkip: false, maxRotation: 40 }, grid: { display: false } },
+      y: { stacked: true, ticks: { callback: v => fmtK(v), font: { size: 11 }, color: '#999' }, grid: { color: '#f0f0ee' } }
+    }
+  }
+});
+
+// Annual categories bar list
+const annualEl = document.getElementById('annual-cats');
+const maxCatVal = catsSorted[0][1];
+catsSorted.forEach(([cat, val]) => {
+  const pct = Math.round(val / totalAll * 100);
+  const w = Math.round(val / maxCatVal * 100);
+  annualEl.innerHTML += `<div class="annual-cat-row">
+    <div class="annual-cat-name">${cat}</div>
+    <div class="annual-bar-wrap"><div class="annual-bar" style="width:${w}%;background:${CAT_COLORS[cat]||'#888'}"></div></div>
+    <div class="annual-pct">${pct}%</div>
+    <div class="annual-val">${fmt(val)}</div>
+  </div>`;
+});
+
+// Pie chart (without savings)
+const pieData = catsSorted.filter(([c]) => c !== 'Сбережения');
+new Chart(document.getElementById('pieChart'), {
+  type: 'doughnut',
+  data: {
+    labels: pieData.map(([c]) => c),
+    datasets: [{ data: pieData.map(([,v]) => v), backgroundColor: pieData.map(([c]) => CAT_COLORS[c]||'#888'), borderWidth: 2, borderColor: '#fff' }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'right', labels: { font: { size: 11 }, padding: 8, boxWidth: 10, color: '#555' } },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${fmt(ctx.raw)} (${Math.round(ctx.raw / pieData.reduce((s,[,v])=>s+v,0)*100)}%)` } }
+    }
+  }
+});
+
+// Period detail tabs
+const INSIGHTS = {
+  "Авг–Сен 2025": "Более половины бюджета (~55%) ушло на <b>сбережения</b>. Среди повседневных трат лидирует <b>алкоголь</b> (47 231 ₽) — вероятно, летний период. <b>Еда</b> — второй по объёму расход.",
+  "Сен–Окт 2025": "Аномальный всплеск на <b>покупки маркетплейсы</b> (88 100 ₽) — почти равен всей еде за период. Сбережения остаются на высоком уровне.",
+  "Окт–Ноя 2025": "Рост категории <b>«Другое»</b> до 66 669 ₽ — рекомендую проверить её состав. Крупные траты на <b>маркетплейсы</b> (60 017 ₽).",
+  "Ноя–Дек 2025": "Один из самых экономных периодов. Структура сбалансирована: еда, алкоголь и счета — основные статьи.",
+  "Декабрь 2025": "Предновогодний пик: <b>«Другое»</b> (129 563 ₽) и <b>подарки</b> (34 339 ₽) резко выросли. Здоровье — 18 000 ₽.",
+  "Январь 2026": "Главная трата — <b>отпуск</b> (173 651 ₽), 55% всего бюджета. Кардинальный сдвиг структуры расходов.",
+  "Февраль 2026": "Рекорд по абсолютной сумме. <b>Сбережения</b> (461 540 ₽) + <b>отпуск</b> (220 200 ₽) = 64% всей суммы. Высокая нагрузка на счета (46 002 ₽).",
+  "Март 2026": "Самый экономный месяц. Выделяются <b>собаки</b> (38 107 ₽) и <b>аквариум</b> (12 461 ₽) — крупные единовременные траты на питомцев.",
+  "Апрель 2026": "Рекордные сбережения (750 083 ₽). Аномально высокие <b>игры</b> (58 346 ₽) — возможно, крупная разовая покупка.",
+  "Май 2026": "Значительный <b>отпуск</b> (100 296 ₽), высокие счета (52 432 ₽) и здоровье (30 847 ₽). Крупный вклад в <b>для дома</b> (33 572 ₽).",
+  "Июнь 2026": "Данные до середины июня. Умеренные расходы. Крупное единовременное пополнение <b>сбережений</b> (100 000 ₽)."
+};
+
+const tabsEl = document.getElementById('period-tabs');
+const detailsEl = document.getElementById('period-details');
+
+PERIOD_ORDER.forEach((period, i) => {
+  const tab = document.createElement('button');
+  tab.className = 'tab' + (i === 0 ? ' active' : '');
+  tab.textContent = period;
+  tab.onclick = () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.period-detail').forEach(d => d.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('detail-' + i).classList.add('active');
+  };
+  tabsEl.appendChild(tab);
+
+  const d = DATA[period];
+  const cats = Object.entries(d.cats).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]);
+  const maxVal = cats[0] ? cats[0][1] : 1;
+
+  let rows = '';
+  cats.forEach(([cat, val], idx) => {
+    const pct = Math.round(val / d.total * 100);
+    const w = Math.round(val / maxVal * 100);
+    rows += `<div class="cat-row">
+      <div class="cat-rank">${idx+1}</div>
+      <div class="cat-name">${cat}</div>
+      <div class="cat-bar-wrap"><div class="cat-bar" style="width:${w}%;background:${CAT_COLORS[cat]||'#888'}"></div></div>
+      <div class="cat-pct">${pct}%</div>
+      <div class="cat-val">${fmt(val)}</div>
+    </div>`;
+  });
+
+  const detail = document.createElement('div');
+  detail.className = 'period-detail' + (i === 0 ? ' active' : '');
+  detail.id = 'detail-' + i;
+  detail.innerHTML = `
+    <div class="period-header">
+      <div class="total-label">Итого за период</div>
+      <div class="total-val">${fmt(d.total)}</div>
+    </div>
+    <div class="cat-list">${rows}</div>
+    <div class="insight">${INSIGHTS[period]}</div>`;
+  detailsEl.appendChild(detail);
+});
+</script>
+</body>
+</html>
