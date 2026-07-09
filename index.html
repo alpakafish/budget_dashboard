@@ -144,16 +144,15 @@ const CAT_COLORS = {
 };
 
 function fmt(n) {
-  return Math.round(n).toLocaleString('ru-RU') + ' ₽';
+  return Math.round(n).toLocaleString('ru-RU') + ' ₽';
 }
 function fmtK(n) {
   const v = Math.round(n);
-  if (v >= 1000000) return (v / 1000000).toFixed(1) + ' млн';
-  if (v >= 1000) return Math.round(v / 1000) + ' тыс';
+  if (v >= 1000000) return (v / 1000000).toFixed(1) + ' млн';
+  if (v >= 1000) return Math.round(v / 1000) + ' тыс';
   return v.toString();
 }
 
-// Aggregate all categories
 const catAllTotals = {};
 PERIOD_ORDER.forEach(p => {
   Object.entries(DATA[p].cats).forEach(([cat, val]) => {
@@ -164,11 +163,8 @@ const catsSorted = Object.entries(catAllTotals).sort((a,b) => b[1]-a[1]).filter(
 const totalAll = PERIOD_ORDER.reduce((s, p) => s + DATA[p].total, 0);
 const maxPeriod = PERIOD_ORDER.reduce((a, b) => DATA[a].total > DATA[b].total ? a : b);
 const minPeriod = PERIOD_ORDER.reduce((a, b) => DATA[a].total < DATA[b].total ? a : b);
-const avgPeriod = Math.round(totalAll / PERIOD_ORDER.length);
-const topCat = catsSorted[0];
 const topSpend = catsSorted.find(([c]) => c !== 'Сбережения');
 
-// Summary metrics
 const metricsEl = document.getElementById('summary-metrics');
 [
   { label: 'Итого трат за период', value: fmt(totalAll), sub: '11 периодов' },
@@ -179,7 +175,6 @@ const metricsEl = document.getElementById('summary-metrics');
   metricsEl.innerHTML += `<div class="metric"><div class="label">${m.label}</div><div class="value">${m.value}</div><div class="sub">${m.sub}</div></div>`;
 });
 
-// Overview stacked bar chart
 const MAIN_CATS = ["Сбережения","Еда","Алкоголь","Счета","Отпуск","Другое","Покупки маркетплейсы","Растения","Собаки","Подарки","Игры","Одежда"];
 const legendEl = document.getElementById('legend-overview');
 MAIN_CATS.forEach(cat => {
@@ -207,7 +202,6 @@ new Chart(document.getElementById('overviewChart'), {
   }
 });
 
-// Annual categories bar list
 const annualEl = document.getElementById('annual-cats');
 const maxCatVal = catsSorted[0][1];
 catsSorted.forEach(([cat, val]) => {
@@ -221,7 +215,6 @@ catsSorted.forEach(([cat, val]) => {
   </div>`;
 });
 
-// Pie chart (without savings)
 const pieData = catsSorted.filter(([c]) => c !== 'Сбережения');
 new Chart(document.getElementById('pieChart'), {
   type: 'doughnut',
@@ -238,7 +231,6 @@ new Chart(document.getElementById('pieChart'), {
   }
 });
 
-// Period detail tabs
 const INSIGHTS = {
   "Авг–Сен 2025": "Более половины бюджета (~55%) ушло на <b>сбережения</b>. Среди повседневных трат лидирует <b>алкоголь</b> (47 231 ₽) — вероятно, летний период. <b>Еда</b> — второй по объёму расход.",
   "Сен–Окт 2025": "Аномальный всплеск на <b>покупки маркетплейсы</b> (88 100 ₽) — почти равен всей еде за период. Сбережения остаются на высоком уровне.",
